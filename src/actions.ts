@@ -1,11 +1,12 @@
 "use server";
 
-import { sessionOptions, SessionData, defaultSession } from "@/lib";
+import { sessionOptions, SessionData, defaultSession, User } from "@/lib";
 import { getIronSession } from "iron-session";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {getDB} from "@/mongo"
+import * as mongoDB from "mongodb";
+import bcrypt from "bcrypt"
 
 let username = "john";
 let isPro = true;
@@ -19,7 +20,6 @@ export const getSession = async () => {
   }
 
   // CHECK THE USER IN THE DB
-  session.isBlocked = isBlocked;
   session.isPro = isPro;
 
   return session;
@@ -36,21 +36,49 @@ export const register = async (
   const formConfirm = formData.get("confirm") as string;
 
 
+  
   // CHECK USER IN THE DB
-  // const user = await db.getUser({username,password})
+  const client: mongoDB.MongoClient = new mongoDB.MongoClient(String(process.env.MONGODB_URI));
+  const user = await client.db('BigByteData').collection('users').findOne({username:formUsername})
+  console.log(user);
 
-  if (formUsername !== username) {
-    return { error: "Wrong Credentials!" };
+  if (user) {
+    return{error: 'Username already existed'}
+  }
+  if (formUsername.length < 4 || formUsername.length > 25){
+    return{error: 'username is must be between 4-25 character'}
   }
   if (formPassword.length < 8) {
     return{error: 'Password must be at least 8 characters long'}
   }
+  const containCapital = /[A-Z]/
+  if (!containCapital.test(formPassword)) {
+    return{error: 'Password contain at least one capital character'}
+  }
+  const containNum = /[0-9]/
+  if (!containNum.test(formPassword)) {
+    return{error: 'Password contain at least on number'}
+  }
   if (formPassword !== formConfirm) {
     return{error: 'Passwords do not match'}
   }
+  var hashedPass
+  const saltRounds = 10
+  var usersalt = ""
 
-  const client = getDB()
-  
+  bcrypt
+  .genSalt(saltRounds)
+  .then(salt => {
+    console.log('Salt: ', salt)
+    usersalt = salt
+    return bcrypt.hash(formPassword, salt)
+  })
+  .then(hash => {
+    console.log('Hash: ', hash)
+    client.db('BigByteData').collection('users').insertOne({username: formUsername, password: hash, salt: usersalt, ispro: false})
+  })
+  .catch(err => console.error(err.message))
+
   redirect("/");
 };
 
@@ -62,21 +90,33 @@ export const login = async (
 
   const formUsername = formData.get("username") as string;
   const formPassword = formData.get("password") as string;
+  
+  var loggedIn = false
 
   // CHECK USER IN THE DB
-  // const user = await db.getUser({username,password})
+  const client: mongoDB.MongoClient = new mongoDB.MongoClient(String(process.env.MONGODB_URI));
+  const user = await client.db('BigByteData').collection('users').findOne({username:formUsername})
+  if (user) {
+    const match = await bcrypt.compare(formPassword, user.password);
+    if(match) { 
+      console.log("result" + user._id.toString());
+      session.userid = user._id.toString();
+      session.username = formUsername;
+      session.isPro = user.ispro
+      session.isLoggedIn = true;
+      await session.save()
 
-  if (formUsername !== username) {
-    return { error: "Wrong Credentials!" };
-  }
-
-  session.userId = "1";
-  session.username = formUsername;
-  session.isPro = isPro;
-  session.isLoggedIn = true;
-
-  await session.save();
+    } else {
+      return { error: "Wrong username or password!" };
+    }
+  
   redirect("/");
+  }
+  else {
+    return { error: "Wrong username or password!" }; 
+  }
+  
+
 };
 
 export const logout = async () => {

@@ -6,7 +6,7 @@ import Navbar from "@/components/navbar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Lama Dev",
+  title: "BigByte",
   description: "Next.js Auth Example",
 };
 

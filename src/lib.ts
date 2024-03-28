@@ -1,11 +1,9 @@
 import { SessionOptions } from "iron-session";
 
 export interface SessionData {
-  userId?:string;
+  userid?:string;
   username?:string;
-  img?:string;
   isPro?:boolean
-  isBlocked?:boolean
   isLoggedIn:boolean
 }
 
@@ -15,9 +13,17 @@ export const defaultSession:SessionData = {
 
 export const sessionOptions: SessionOptions ={
   password: process.env.SECRET_KEY!,
-  cookieName: "lama-session",
+  cookieName: "user-session",
   cookieOptions:{
     httpOnly:true,
-    secure: process.env.NODE_ENV === "production"
+    secure: process.env.NODE_ENV === "production",
+    path:"/"
   }
+}
+
+export interface User{
+  username:string;
+  password:string;
+  salt:string;
+  ispro:boolean;
 }

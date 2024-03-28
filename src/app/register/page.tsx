@@ -1,8 +1,8 @@
 import { getSession } from "@/actions"
-import LoginForm from "@/components/loginForm"
+import RegisterForm from "@/components/registerForm"
 import { redirect } from "next/navigation"
 
-const LoginPage = async () => {  
+const RegisterPage = async () => {  
   const session = await getSession()
 
   if(session.isLoggedIn){
@@ -10,10 +10,10 @@ const LoginPage = async () => {
   }
   return (
     <div className="login">
-      <h1>Welcome to the Login Page</h1>
-      <LoginForm/>
+      <h1>Welcome to the Register Page</h1>
+      <RegisterForm/>
     </div>
   )
 }
 
-export default LoginPage
+export default RegisterPage

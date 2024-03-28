@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 const ProfilePage = async () => {
   const session = await getSession();
+  console.log(session.isLoggedIn)
 
   if(!session.isLoggedIn){
     redirect("/")
